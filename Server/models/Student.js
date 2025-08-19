@@ -1,35 +1,35 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const studentSchema = new mongoose.Schema({
   rollNo: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   name: {
     type: String,
-    required: true
+    required: true,
   },
   class: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class',
+    ref: "Class",
   },
   institute: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Institute',
+    ref: "Institute",
   },
   exams: [
     {
-      ExamName: String,
-      ExamData: Object
-    }
+      ExamType: { type: String, enum: ["IIT", "CDF"] },
+      ExamName: { type: String },
+      ExamData: { type: Object, required: true },
+    },
   ],
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-
-const Student = mongoose.model('Student', studentSchema);
+const Student = mongoose.model("Student", studentSchema);
 export default Student;

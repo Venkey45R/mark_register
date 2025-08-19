@@ -4,6 +4,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import Student from "./models/Student.js";
 import User from "./models/User.js";
+import fs from "fs";
+import path from "path";
+import bodyParser from "body-parser";
 import Institute from "./models/Institute.js";
 import Class from "./models/Classes.js";
 import cookieParser from "cookie-parser";
@@ -11,6 +14,10 @@ import { UAParser } from "ua-parser-js";
 import { v4 as uuidv4 } from "uuid";
 import Log from "./models/Logs.js";
 import Visitor from "./models/visitors.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+
+const JWT_SECRET = "your_super_secret_jwt_key";
 
 function parseUserAgent(userAgent) {
   const parser = new UAParser(userAgent);
@@ -19,10 +26,26 @@ function parseUserAgent(userAgent) {
   return { os, browser };
 }
 
+const auth = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; // The payload (userId and role) is now available in req.user
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Token is not valid" });
+  }
+};
+
 dotenv.config();
 
 const app = express();
-
+app.use(bodyParser.text({ type: "text/csv" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
@@ -42,50 +65,53 @@ mongoose
   .catch((err) => console.log(err));
 
 app.post("/api/upload", async (req, res) => {
-  const { students, classId } = req.body;
-  if (!classId || !students?.length) {
+  const { students, classId, testType } = req.body;
+
+  if (!classId || !students?.length || !testType) {
     return res.status(400).json({ message: "Missing data" });
   }
 
   try {
     await Promise.all(
-      students.map(async (student) => {
-        const existingStudent = await Student.findOne({
-          rollNo: student.rollNo,
-        });
+      students.map(async (student, i) => {
+        // Ensure examName is never blank
+        let examName =
+          student.exam?.examName && student.exam.examName.trim() !== ""
+            ? student.exam.examName.trim()
+            : `${testType}-Test-${i + 1}`;
 
         const newExam = {
-          ExamName: student.exam.examName,
-          ExamData: student.exam,
+          ExamType: testType, // IIT or CDF
+          ExamName: examName, // guaranteed non-empty
+          ExamData: student.exam, // full JSON
         };
 
+        let existingStudent = await Student.findOne({ rollNo: student.rollNo });
+
         if (!existingStudent) {
-          const newStudent = await Student.create({
+          const created = await Student.create({
             rollNo: student.rollNo,
             name: student.name,
-            institute: student.exam.institute, // optional
             class: classId,
             exams: [newExam],
           });
 
-          // Push student to class
           await Class.findByIdAndUpdate(classId, {
-            $addToSet: { students: newStudent._id },
+            $addToSet: { students: created._id },
           });
         } else {
-          const examIndex = existingStudent.exams.findIndex(
-            (exam) => exam.ExamName === student.exam.examName
+          const idx = existingStudent.exams.findIndex(
+            (e) =>
+              e.ExamName === newExam.ExamName && e.ExamType === newExam.ExamType
           );
 
-          if (examIndex !== -1) {
-            existingStudent.exams[examIndex] = newExam;
+          if (idx !== -1) {
+            existingStudent.exams[idx] = newExam;
           } else {
             existingStudent.exams.push(newExam);
           }
 
           await existingStudent.save();
-
-          // Also ensure they're part of this class
           await Class.findByIdAndUpdate(classId, {
             $addToSet: { students: existingStudent._id },
           });
@@ -93,7 +119,7 @@ app.post("/api/upload", async (req, res) => {
       })
     );
 
-    res.status(200).json({ message: "Upload successful" });
+    res.status(200).json({ message: "Upload successful ✅" });
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ message: "Server error during upload" });
@@ -142,46 +168,87 @@ app.get("/api/incharge-classes/:userId", async (req, res) => {
   }
 });
 
-// app.post('/api/signup', async (req, res) =>{
-//   const {username, password, name, institution, role} = req.body.formData;
-//   try{
-//     const existingUser = await User.findOne({ username});
-//     if(existingUser){
-//       return res.status(400).json({message: "username taken"});
+// app.post("/api/signup", async (req, res) => {
+//   const { username, password, name, institution, role } = req.body.formData;
+//   try {
+//     const existingUser = await User.findOne({ username });
+//     if (existingUser) {
+//       return res.status(400).json({ message: "username taken" });
 //     }
-//     else{
-//       const newUser = await User.create({
-//         username, password, name, institution, role
-//       });
-//       res.status(201).json({message: "success", user: newUser});
-//     }
-//   }
-//   catch(err){
-//     console.log(err);
-//     res.status(500).json({message: "server error"});
-//   }
-// })
 
+//     const newUser = await User.create({
+//       username,
+//       password,
+//       name,
+//       institution,
+//       role,
+//     });
+
+//     // 🌐 Log visitor info
+//     const userAgent = req.headers["user-agent"];
+//     const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+//     const { os, browser } = parseUserAgent(userAgent);
+//     const visitorId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+//     await Visitor.create({
+//       visitorId,
+//       ip,
+//       os,
+//       browser,
+//       url: "/signup",
+//     });
+
+//     res.status(201).json({ message: "success", user: newUser });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: "server error" });
+//   }
+// });
 app.post("/api/signup", async (req, res) => {
   const { username, password, name, institution, role } = req.body.formData;
+
   try {
+    // 1️⃣ Check if username is already taken
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ message: "username taken" });
     }
 
+    // 2️⃣ Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 3️⃣ Create new user
     const newUser = await User.create({
       username,
-      password,
+      password: hashedPassword,
       name,
       institution,
       role,
     });
 
-    // 🌐 Log visitor info
+    // 4️⃣ Create JWT payload
+    const payload = {
+      userId: newUser._id,
+      role: newUser.role,
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+
+    // 5️⃣ Store token in httpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // change to true in production (HTTPS)
+      sameSite: "strict",
+      maxAge: 3600000, // 1 hour
+    });
+
+    // 6️⃣ Log visitor info
     const userAgent = req.headers["user-agent"];
     const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    const { os, browser } = parseUserAgent(userAgent);
+    const parser = new UAParser(userAgent);
+    const os = parser.getOS().name || "Unknown OS";
+    const browser = parser.getBrowser().name || "Unknown Browser";
     const visitorId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     await Visitor.create({
@@ -192,9 +259,71 @@ app.post("/api/signup", async (req, res) => {
       url: "/signup",
     });
 
-    res.status(201).json({ message: "success", user: newUser });
+    // 7️⃣ Return success with role + name
+    return res
+      .status(201)
+      .json({ message: "success", name: newUser.name, role: newUser.role });
   } catch (err) {
     console.log(err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
+// -- Login Route --
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password incorrect" });
+    }
+
+    const payload = {
+      userId: user._id,
+      role: user.role,
+    };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 3600000,
+    });
+
+    const userAgent = req.headers["user-agent"];
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const parser = new UAParser(userAgent);
+    const os = parser.getOS().name || "Unknown OS";
+    const browser = parser.getBrowser().name || "Unknown Browser";
+
+    const log = new Log({
+      loginId: uuidv4(),
+      userId: user._id,
+      ip,
+      os,
+      browser,
+      loggedInAt: new Date(),
+    });
+    await log.save();
+
+    const visitor = new Visitor({
+      visitorId: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      ip,
+      os,
+      browser,
+      url: "/login",
+    });
+    await visitor.save();
+    return res
+      .status(200)
+      .json({ message: "success", name: user.name, role: user.role });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "server error" });
   }
 });
@@ -211,82 +340,108 @@ app.get("/incharges/:institution", async (req, res) => {
   }
 });
 
-app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
+// app.post("/api/login", async (req, res) => {
+//   const { username, password } = req.body;
 
-  try {
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: "User not found" });
+//   try {
+//     const user = await User.findOne({ username });
+//     if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (user.password === password) {
-      // Set cookies
-      res.cookie("userRole", user.role, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+//     if (user.password === password) {
+//       // Set cookies
+//       res.cookie("userRole", user.role, {
+//         httpOnly: true,
+//         secure: false,
+//         sameSite: "strict",
+//         maxAge: 24 * 60 * 60 * 1000,
+//       });
 
-      res.cookie("username", user.username, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+//       res.cookie("username", user.username, {
+//         httpOnly: true,
+//         secure: false,
+//         sameSite: "strict",
+//         maxAge: 24 * 60 * 60 * 1000,
+//       });
 
-      // ✅ Get device & IP info
-      const userAgent = req.headers["user-agent"];
-      const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-      const parser = new UAParser(userAgent);
-      const os = parser.getOS().name || "Unknown OS";
-      const browser = parser.getBrowser().name || "Unknown Browser";
+//       // ✅ Get device & IP info
+//       const userAgent = req.headers["user-agent"];
+//       const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+//       const parser = new UAParser(userAgent);
+//       const os = parser.getOS().name || "Unknown OS";
+//       const browser = parser.getBrowser().name || "Unknown Browser";
 
-      // ✅ Save Login Log
-      const log = new Log({
-        loginId: uuidv4(),
-        userId: user._id,
-        ip,
-        os,
-        browser,
-        loggedInAt: new Date(),
-      });
-      await log.save();
+//       // ✅ Save Login Log
+//       const log = new Log({
+//         loginId: uuidv4(),
+//         userId: user._id,
+//         ip,
+//         os,
+//         browser,
+//         loggedInAt: new Date(),
+//       });
+//       await log.save();
 
-      // ✅ Save Visitor
-      const visitor = new Visitor({
-        visitorId: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-        ip,
-        os,
-        browser,
-        url: "/login",
-      });
-      await visitor.save();
+//       // ✅ Save Visitor
+//       const visitor = new Visitor({
+//         visitorId: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+//         ip,
+//         os,
+//         browser,
+//         url: "/login",
+//       });
+//       await visitor.save();
 
-      return res.status(200).json({ message: "success", name: user.name });
-    } else {
-      return res.status(400).json({ message: "Password incorrect" });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "server error" });
-  }
-});
+//       return res.status(200).json({ message: "success", name: user.name });
+//     } else {
+//       return res.status(400).json({ message: "Password incorrect" });
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "server error" });
+//   }
+// });
 
 app.get("/api/getUserRole", (req, res) => {
   const role = req.cookies.userRole;
   res.json({ role });
 });
-
-app.get("/api/check-role", (req, res) => {
-  const role = req.cookies.userRole;
-  if (!role) return res.status(401).json({ message: "Not logged in" });
-  res.status(200).json({ role });
+app.get("/api/check-role", auth, (req, res) => {
+  // The 'auth' middleware has already decoded the token and attached the user data to req.user
+  res.json({ role: req.user.role, userId: req.user.userId });
 });
 
-//Users schema crud:
-//post - signup
+// -- New: Get institute route --
+// This route is protected by the 'auth' middleware.
+// It will return a 401 if no valid JWT token is found.
+// It will return a 404 if the institute name is not found in the database.
+app.get("/api/institutes", async (req, res) => {
+  try {
+    const { name } = req.query; // Get the 'name' query parameter
+    if (!name) {
+      return res.status(400).json({ message: "Institute name is required" });
+    }
 
-//get all users
+    // Find the institute by its name (case-insensitive)
+    const institute = await Institute.findOne({
+      name: { $regex: new RegExp(name, "i") }, // Use regex for case-insensitive search
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: "Institute not found" });
+    }
+
+    res.status(200).json(institute);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// A route that requires no authentication
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+
 app.get("/users", async (req, res) => {
   try {
     const users = await User.find().populate("institution"); // ✅ add this line
@@ -323,18 +478,26 @@ app.put("/users/:id", async (req, res) => {
 
 app.post("/api/logout", async (req, res) => {
   const username = req.cookies.username;
+
   if (username) {
     const user = await User.findOne({ username });
     if (user) {
       await Log.findOneAndUpdate(
         { userId: user._id },
         { loggedOutAt: new Date() },
-        { sort: { createdAt: -1 } } // update the most recent login
+        { sort: { createdAt: -1 } }
       );
     }
   }
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+  });
   res.clearCookie("userRole");
   res.clearCookie("username");
+
   res.status(200).json({ message: "Logged out" });
 });
 
@@ -349,8 +512,9 @@ app.post("/admin-change-password", async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    user.password = newPassword;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedPassword;
     await user.save();
 
     res.json({ message: "Password updated successfully" });
@@ -378,7 +542,9 @@ app.post("/change-password", async (req, res) => {
         .status(400)
         .json({ message: "Existing password is incorrect" });
     }
-    user.password = newPassword;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedPassword;
     await user.save();
     return res.status(200).json({ message: "success" });
   } catch (err) {
@@ -401,13 +567,23 @@ app.delete("/users/:id", async (req, res) => {
 //Institute schema CRUD
 
 //post
-app.post("/institutes", async (req, res) => {
+app.post("/api/institutes", auth, async (req, res) => {
   try {
     const newInstitute = new Institute(req.body);
     const savedInstitute = await newInstitute.save();
     res.status(201).json(savedInstitute);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/institutes", async (req, res) => {
+  try {
+    const name = req.query.name;
+    const institute = await Institute.find({ name });
+    res.json(institute);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -523,18 +699,18 @@ app.get("/api/class-students/:classId", async (req, res) => {
   }
 });
 
-app.get("/api/current-user", async (req, res) => {
+app.get("/api/current-user", auth, async (req, res) => {
   try {
-    const role = req.cookies.userRole;
-    const username = req.cookies.username;
-
-    if (!username || !role)
-      return res.status(401).json({ message: "Not authenticated" });
-
-    const user = await User.findOne({ username }).populate("institution");
+    const user = await User.findById(req.user.userId).populate("institution");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user);
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      institution: user.institution,
+    });
   } catch (err) {
     console.error("Error fetching current user:", err);
     res.status(500).json({ message: "Server error" });
