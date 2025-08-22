@@ -16,6 +16,7 @@ import Log from "./models/Logs.js";
 import Visitor from "./models/visitors.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import multer from "multer";
 
 const JWT_SECRET = "your_super_secret_jwt_key";
 
@@ -25,6 +26,18 @@ function parseUserAgent(userAgent) {
   const browser = parser.getBrowser().name || "Unknown Browser";
   return { os, browser };
 }
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // save files inside /uploads
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
 
 const auth = (req, res, next) => {
   const token = req.cookies.token;
@@ -208,29 +221,35 @@ app.post("/api/signup", async (req, res) => {
   const { username, password, name, institution, role } = req.body.formData;
 
   try {
-    // 1️⃣ Check if username is already taken
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: "username taken" });
+    // If institution is string, find its ObjectId
+    let institutionId = institution;
+    if (typeof institution === "string") {
+      const inst = await Institute.findOne({ name: institution });
+      if (!inst) {
+        return res.status(400).json({ message: "Institute not found" });
+      }
+      institutionId = inst._id;
     }
 
-    // 2️⃣ Hash password
+    // hash password, etc...
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3️⃣ Create new user
     const newUser = await User.create({
       username,
       password: hashedPassword,
       name,
-      institution,
+      institution: institutionId, // ✅ now ObjectId
       role,
     });
 
-    // 4️⃣ Create JWT payload
+    // ... rest of signup logic unchanged
+
+    // 4️⃣ Create JWT payload (✅ add institution here)
     const payload = {
       userId: newUser._id,
       role: newUser.role,
+      institution: newUser.institution,
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
@@ -259,10 +278,13 @@ app.post("/api/signup", async (req, res) => {
       url: "/signup",
     });
 
-    // 7️⃣ Return success with role + name
-    return res
-      .status(201)
-      .json({ message: "success", name: newUser.name, role: newUser.role });
+    // 7️⃣ Return success with role + name + institution
+    return res.status(201).json({
+      message: "success",
+      name: newUser.name,
+      role: newUser.role,
+      institution: newUser.institution, // ✅ added
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "server error" });
@@ -282,10 +304,13 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Password incorrect" });
     }
 
+    // ✅ Add institution to payload
     const payload = {
       userId: user._id,
       role: user.role,
+      institution: user.institution, // added institution field
     };
+
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
 
     res.cookie("token", token, {
@@ -319,9 +344,13 @@ app.post("/api/login", async (req, res) => {
       url: "/login",
     });
     await visitor.save();
-    return res
-      .status(200)
-      .json({ message: "success", name: user.name, role: user.role });
+
+    return res.status(200).json({
+      message: "success",
+      name: user.name,
+      role: user.role,
+      institution: user.institution, // ✅ also return institution in response
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "server error" });
@@ -405,14 +434,45 @@ app.get("/api/getUserRole", (req, res) => {
   const role = req.cookies.userRole;
   res.json({ role });
 });
-app.get("/api/check-role", auth, (req, res) => {
-  // The 'auth' middleware has already decoded the token and attached the user data to req.user
-  res.json({ role: req.user.role, userId: req.user.userId });
+
+app.get("/api/check-role", auth, async (req, res) => {
+  const user = await User.findById(req.user.userId).populate("institution");
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  res.json({
+    role: user.role,
+    userId: user._id,
+    institute: user.institution, // ✅ now full object
+  });
+});
+// PUT: update institute logo
+app.put("/api/institutes/:id/logo", upload.single("logo"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    console.log("Uploaded file:", req.file);
+
+    const institute = await Institute.findById(req.params.id);
+    if (!institute) {
+      return res.status(404).json({ message: "Institute not found" });
+    }
+
+    // Save relative path in DB
+    institute.logo = `/uploads/${req.file.filename}`;
+    await institute.save();
+
+    res.json({ message: "Logo uploaded successfully", institute });
+  } catch (err) {
+    console.error("Error uploading logo:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
 });
 
-// -- New: Get institute route --
-// This route is protected by the 'auth' middleware.
-// It will return a 401 if no valid JWT token is found.
+// Make /uploads folder public
+app.use("/uploads", express.static("uploads"));
+
 // It will return a 404 if the institute name is not found in the database.
 app.get("/api/institutes", async (req, res) => {
   try {
@@ -444,7 +504,7 @@ app.get("/", (req, res) => {
 
 app.get("/users", async (req, res) => {
   try {
-    const users = await User.find().populate("institution"); // ✅ add this line
+    const users = await User.find().populate("institution", "name _id");
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });

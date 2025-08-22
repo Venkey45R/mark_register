@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const classSchema = new mongoose.Schema({
   className: String,
@@ -6,22 +6,23 @@ const classSchema = new mongoose.Schema({
   section: String,
   classTeacher: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: "User",
   },
-  students: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student'
-  }],
+  students: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+    },
+  ],
   institute: {
-  type: String,
-  required: true
-},
+    type: String,
+    required: true,
+  },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-
-const Class = mongoose.model('Class', classSchema);
+const Class = mongoose.model("Class", classSchema);
 export default Class;

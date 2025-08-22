@@ -1,40 +1,45 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const instituteSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   instituteCode: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   type: {
     type: String,
-    enum: ['school', 'college'],
-    required: true
+    enum: ["school", "college"],
+    required: true,
   },
   address: {
     street: String,
     city: String,
     state: String,
-    pincode: String
+    pincode: String,
   },
   contact: {
     phone: String,
     email: String,
-    website: String
+    website: String,
   },
-  classes: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class'
-  }],
+  classes: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+    },
+  ],
+  logo: {
+    type: String, // will store file path or cloud URL
+  },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const Institute = mongoose.model('Institute', instituteSchema);
+const Institute = mongoose.model("Institute", instituteSchema);
 export default Institute;

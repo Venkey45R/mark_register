@@ -18,8 +18,8 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     institution: {
-      type: String,
-      required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Institute", // ✅ critical for populate
     },
     role: {
       type: String,
