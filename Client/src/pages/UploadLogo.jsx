@@ -6,6 +6,7 @@ import { useUser } from "../components/UserContext";
 const UploadLogo = () => {
   const [userInstitution, setUserInstitution] = useState("");
   const [logoFile, setLogoFile] = useState(null);
+  const [fileName, setFileName] = useState("");
   const [currentLogo, setCurrentLogo] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +22,12 @@ const UploadLogo = () => {
         if (res.data.role === "principal" || res.data.role === "manager") {
           let institutionId = "";
 
-          // Case 1: institution is already populated (object with _id)
           if (
             typeof res.data.institution === "object" &&
             res.data.institution !== null
           ) {
             institutionId = res.data.institution._id;
-          }
-          // Case 2: institution is stored as string (likely instituteCode)
-          else if (typeof res.data.institution === "string") {
+          } else if (typeof res.data.institution === "string") {
             const instRes = await axios.get(
               `http://localhost:3001/api/institutes?name=${res.data.institution}`,
               { withCredentials: true }
@@ -45,7 +43,6 @@ const UploadLogo = () => {
 
           setUserInstitution(institutionId);
 
-          // fetch current institute data (for logo preview)
           const instituteRes = await axios.get(
             `http://localhost:3001/institutes/${institutionId}`,
             { withCredentials: true }
@@ -79,7 +76,10 @@ const UploadLogo = () => {
   }, [institute]);
 
   const handleFileChange = (e) => {
-    setLogoFile(e.target.files[0]);
+    if (e.target.files.length > 0) {
+      setLogoFile(e.target.files[0]);
+      setFileName(e.target.files[0].name);
+    }
   };
 
   const handleUploadLogo = async () => {
@@ -107,6 +107,8 @@ const UploadLogo = () => {
 
       alert("Logo uploaded successfully ✅");
       setCurrentLogo(res.data.institute.logo);
+      setFileName("");
+      setLogoFile(null);
     } catch (err) {
       console.error("Error uploading logo:", err.response?.data || err.message);
       alert("Failed to upload logo.");
@@ -116,9 +118,9 @@ const UploadLogo = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-gray-100 via-blue-100 to-blue-200">
-        <div className="max-w-xl p-6 mx-auto bg-white shadow-xl rounded-2xl">
-          <h2 className="mb-6 text-3xl font-bold text-center text-blue-700">
+      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-100">
+        <div className="max-w-xl p-8 mx-auto bg-white shadow-xl rounded-3xl">
+          <h2 className="mb-6 text-3xl font-extrabold text-center text-indigo-700">
             Upload Institute Logo
           </h2>
 
@@ -128,32 +130,48 @@ const UploadLogo = () => {
             <>
               {/* Current logo preview */}
               {currentLogo ? (
-                <div className="mb-4 text-center">
+                <div className="mb-6 text-center">
                   <p className="mb-2 text-gray-700">Current Logo:</p>
                   <img
                     src={`http://localhost:3001${currentLogo}`}
                     alt="Institute Logo"
-                    className="h-32 mx-auto rounded-lg shadow"
+                    className="h-32 mx-auto border shadow-md rounded-xl"
                   />
                 </div>
               ) : (
-                <p className="mb-4 text-center text-gray-500">
+                <p className="mb-6 text-center text-gray-500">
                   No logo uploaded yet.
                 </p>
               )}
 
-              {/* File upload input */}
+              {/* Hidden file input */}
               <input
                 type="file"
                 accept="image/*"
+                id="fileInput"
                 onChange={handleFileChange}
-                className="w-full mb-4"
+                className="hidden"
               />
+
+              {/* Custom upload button */}
+              <div className="flex flex-col items-center mb-4">
+                <label
+                  htmlFor="fileInput"
+                  className="px-6 py-2 font-semibold text-white rounded-lg shadow cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  Select Logo
+                </label>
+                {fileName && (
+                  <p className="mt-2 text-sm font-medium text-purple-600">
+                    Selected: {fileName}
+                  </p>
+                )}
+              </div>
 
               {/* Upload button */}
               <button
                 onClick={handleUploadLogo}
-                className="w-full py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="w-full py-2 font-semibold text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
                 📤 Upload Logo
               </button>

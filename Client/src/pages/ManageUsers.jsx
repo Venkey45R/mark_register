@@ -21,13 +21,13 @@ function ManageUsers() {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification({ show: false, message: "", type });
-    }, 3000); // Hide after 3 seconds
+    }, 3000);
   };
 
   const fetchUsers = useCallback(() => {
     setLoading(true);
     axios
-      .get("http://localhost:3001/users")
+      .get("http://localhost:3001/users", { withCredentials: true })
       .then((response) => {
         setUsers(response.data);
       })
@@ -42,9 +42,9 @@ function ManageUsers() {
 
   useEffect(() => {
     fetchUsers();
-    // This second useEffect from the original code remains for its purpose
+
     axios
-      .get("http://localhost:3001/api/getUserRole")
+      .get("http://localhost:3001/api/getUserRole", { withCredentials: true })
       .then((res) => console.log("User Role Check:", res.data))
       .catch((error) => console.error("Error fetching user role:", error));
   }, [fetchUsers]);
@@ -56,29 +56,28 @@ function ManageUsers() {
 
   const closeModal = () => {
     setShowModal(false);
-    setSelectedUser(null); // Deselect user after modal transition
+    setSelectedUser(null);
   };
 
   const handlePasswordChange = (userId, newPassword) => {
     return axios
-      .post("http://localhost:3001/admin-change-password", {
-        user_id: userId,
-        newPassword: newPassword,
-      })
+      .post(
+        "http://localhost:3001/admin-change-password",
+        { user_id: userId, newPassword },
+        { withCredentials: true }
+      )
       .then((response) => {
         if (response.data.message === "Password updated successfully") {
           showToast("Password changed successfully!");
           closeModal();
         } else {
-          throw new Error(
-            response.data.message || "An unknown error occurred."
-          );
+          throw new Error(response.data.message || "Unknown error");
         }
       })
       .catch((err) => {
         console.error("Error changing password:", err);
         showToast(err.message || "Server error changing password.", "error");
-        throw err; // Re-throw to be caught in the modal
+        throw err;
       });
   };
 
@@ -87,18 +86,21 @@ function ManageUsers() {
   return (
     <>
       <NavBar />
-      <div className="min-h-screen p-4 font-sans bg-gray-50 dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              User Management
-            </h1>
-            <p className="mt-1 text-gray-500 dark:text-gray-400">
-              Manage user accounts and permissions.
+      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-gray-50 via-purple-50 to-indigo-100">
+        <div className="max-w-6xl p-6 mx-auto bg-white shadow-xl rounded-2xl">
+          <header className="mb-6 text-center">
+            <h1 className="text-3xl font-bold text-indigo-700">Manage Users</h1>
+            <p className="mt-2 text-gray-600">
+              View, update, and manage user accounts & permissions.
             </p>
           </header>
+
           <main>
-            <UserList users={users} onOpenModal={openModal} />
+            {users.length === 0 ? (
+              <p className="text-center text-gray-500">No users found.</p>
+            ) : (
+              <UserList users={users} onOpenModal={openModal} />
+            )}
           </main>
         </div>
       </div>

@@ -130,9 +130,9 @@ const ManageClasses = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-gray-100 via-green-100 to-green-200">
-        <div className="max-w-5xl p-6 mx-auto bg-white shadow-xl rounded-2xl">
-          <h2 className="mb-6 text-3xl font-bold text-center text-green-700">
+      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="max-w-5xl p-8 mx-auto bg-white shadow-2xl rounded-3xl">
+          <h2 className="mb-8 text-3xl font-extrabold text-center text-indigo-700">
             Manage Classes
           </h2>
 
@@ -145,7 +145,7 @@ const ManageClasses = () => {
                 setNewClassData({ ...newClassData, className: e.target.value })
               }
               placeholder="Class Name (e.g. CSE)"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-400"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
               required
             />
             <input
@@ -155,7 +155,7 @@ const ManageClasses = () => {
                 setNewClassData({ ...newClassData, year: e.target.value })
               }
               placeholder="Year (e.g. 3)"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-400"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
               required
             />
             <input
@@ -165,14 +165,14 @@ const ManageClasses = () => {
                 setNewClassData({ ...newClassData, section: e.target.value })
               }
               placeholder="Section (e.g. A)"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-400"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
               required
             />
           </div>
 
           <button
             onClick={handleAddClass}
-            className="w-full py-2 mb-8 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
+            className="w-full py-2 mb-8 font-semibold text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
           >
             ➕ Add Class
           </button>
@@ -187,16 +187,16 @@ const ManageClasses = () => {
               {classes.map((c) => (
                 <div
                   key={c._id}
-                  className="flex flex-col justify-between gap-4 p-4 border rounded-lg shadow bg-gray-50 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-4 p-5 border shadow rounded-2xl bg-gray-50 sm:flex-row sm:items-center"
                 >
                   <div>
-                    <p className="text-lg font-semibold text-green-800">
+                    <p className="text-lg font-semibold text-indigo-700">
                       {c.className} - Year {c.year}, Section {c.section}
                     </p>
                     <p className="text-sm text-gray-600">
                       Incharge:{" "}
                       {c.classTeacher ? (
-                        <span className="font-medium">
+                        <span className="font-medium text-gray-800">
                           {c.classTeacher.name}
                         </span>
                       ) : (
@@ -214,7 +214,7 @@ const ManageClasses = () => {
                           [c._id]: e.target.value,
                         }))
                       }
-                      className="px-2 py-1 border rounded-lg"
+                      className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
                     >
                       <option value="" disabled>
                         Select Incharge
@@ -229,9 +229,9 @@ const ManageClasses = () => {
                     <button
                       onClick={() => handleAssignIncharge(c._id)}
                       disabled={!selectedIncharges[c._id]}
-                      className={`px-4 py-1 text-white rounded-lg ${
+                      className={`px-4 py-2 rounded-lg text-white font-medium transition ${
                         selectedIncharges[c._id]
-                          ? "bg-green-600 hover:bg-green-700"
+                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
                           : "bg-gray-400 cursor-not-allowed"
                       }`}
                     >
@@ -240,7 +240,7 @@ const ManageClasses = () => {
 
                     <button
                       onClick={() => handleDeleteClass(c._id)}
-                      className="px-4 py-1 text-white bg-red-500 rounded-lg hover:bg-red-600"
+                      className="px-4 py-2 font-medium text-white transition bg-red-500 rounded-lg hover:bg-red-600"
                     >
                       Delete
                     </button>

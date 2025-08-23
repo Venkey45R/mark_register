@@ -57,26 +57,28 @@ const SeeResults = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-gray-100 via-green-100 to-green-200">
+      <div className="min-h-screen px-4 py-10 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h1 className="mb-6 text-3xl font-bold text-center text-green-800">
+          {/* Page Title */}
+          <h1 className="mb-8 text-3xl font-extrabold text-center text-indigo-700">
             📋 Class Results Overview
           </h1>
 
-          {/* Class Cards */}
-          <div className="grid gap-4 mb-10 sm:grid-cols-2 md:grid-cols-3">
+          {/* Class Selection */}
+          <div className="grid gap-6 mb-12 sm:grid-cols-2 md:grid-cols-3">
             {classes.map((cls) => (
               <div
                 key={cls._id}
                 onClick={() => handleSelectClass(cls._id)}
-                className={`p-4 border rounded-xl shadow-md transition cursor-pointer ${
-                  selectedClassId === cls._id
-                    ? "bg-green-200 border-green-500"
-                    : "bg-white"
-                } hover:bg-green-100`}
+                className={`p-5 cursor-pointer transition rounded-3xl shadow-lg border 
+                  ${
+                    selectedClassId === cls._id
+                      ? "bg-indigo-100 border-indigo-500"
+                      : "bg-white hover:bg-indigo-50 border-gray-200"
+                  }`}
               >
-                <p className="text-lg font-semibold text-green-700">
-                  {cls.className} - Year {cls.year}, Section {cls.section}
+                <p className="text-lg font-semibold text-indigo-800">
+                  {cls.className} – Year {cls.year}, Section {cls.section}
                 </p>
               </div>
             ))}
@@ -84,32 +86,32 @@ const SeeResults = () => {
 
           {/* Student Table */}
           {selectedClassId && (
-            <div className="p-6 mt-8 bg-white shadow-md rounded-xl">
-              <h2 className="mb-4 text-xl font-semibold text-green-700">
+            <div className="p-6 bg-white border border-gray-200 shadow-lg rounded-3xl">
+              <h2 className="mb-6 text-xl font-bold text-indigo-700">
                 👨‍🎓 Students in Selected Class
               </h2>
 
               {students.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-center border border-collapse">
-                    <thead className="text-white bg-green-700">
+                  <table className="w-full overflow-hidden text-sm text-center border border-collapse rounded-lg">
+                    <thead className="text-white bg-gradient-to-r from-indigo-600 to-purple-600">
                       <tr>
-                        <th className="p-2 border">Roll No</th>
-                        <th className="p-2 border">Name</th>
-                        <th className="p-2 border">Actions</th>
+                        <th className="p-3 border">Roll No</th>
+                        <th className="p-3 border">Name</th>
+                        <th className="p-3 border">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {students.map((student, idx) => (
-                        <tr key={idx} className="hover:bg-green-50">
-                          <td className="p-2 border">{student.rollNo}</td>
-                          <td className="p-2 border">{student.name}</td>
-                          <td className="p-2 border">
+                        <tr key={idx} className="transition hover:bg-indigo-50">
+                          <td className="p-3 border">{student.rollNo}</td>
+                          <td className="p-3 border">{student.name}</td>
+                          <td className="p-3 border">
                             <button
                               onClick={() =>
                                 navigate(`/student-details/${student.rollNo}`)
                               }
-                              className="px-3 py-1 text-white bg-green-600 rounded hover:bg-green-700"
+                              className="px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                             >
                               View Report
                             </button>

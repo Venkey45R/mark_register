@@ -23,17 +23,20 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4 bg-[#f0fdf4]">
-      <div className="w-full max-w-md p-8 bg-white shadow-xl rounded-2xl">
-        <h2 className="mb-6 text-3xl font-bold text-center text-[#14532d]">
+    <div className="flex items-center justify-center min-h-screen px-4 bg-gray-50">
+      <div className="w-full max-w-md p-8 bg-white shadow-2xl rounded-3xl">
+        {/* Title */}
+        <h2 className="mb-6 text-3xl font-extrabold text-center text-indigo-700">
           Welcome Back 👋
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input
             name="username"
             placeholder="Username"
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
           <input
@@ -41,23 +44,29 @@ const Login = () => {
             name="password"
             placeholder="Password"
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
           <button
             type="submit"
-            className="w-full px-4 py-2 font-semibold text-white bg-[#10b981] rounded-md hover:bg-emerald-700"
+            className="w-full px-4 py-3 font-semibold text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
           >
             Sign In
           </button>
         </form>
 
-        <p className="mt-4 text-sm text-center">
+        {/* Links */}
+        <p className="mt-5 text-sm text-center text-gray-600">
           Don’t have an account?{" "}
-          <Link to="/signup" className="font-medium text-[#14532d] underline">
+          <Link
+            to="/signup"
+            className="font-medium text-indigo-600 hover:underline"
+          >
             Create one
           </Link>
         </p>
+
+        {/* Error message */}
         {message && (
           <p className="mt-4 text-sm text-center text-red-600">{message}</p>
         )}

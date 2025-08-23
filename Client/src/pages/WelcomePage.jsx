@@ -13,6 +13,7 @@ const roleFeatures = {
     { label: "Manage Classes", navigateTo: "/manage-classes" },
     { label: "See Results", navigateTo: "/see-results" },
     { label: "Institute Details", navigateTo: "/update-institute" },
+    { label: "Update Logo", navigateTo: "/upload-logo" },
   ],
   incharge: [
     { label: "Upload Marks", navigateTo: "/upload-marks" },
