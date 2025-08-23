@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar";
+import toast from "react-hot-toast";
 
 const AddInstitute = () => {
   const navigate = useNavigate();
@@ -31,10 +32,15 @@ const AddInstitute = () => {
     e.preventDefault();
     try {
       await axios.post("/institutes", formData, { withCredentials: true });
-      setMessage("✅ Institute added successfully!");
+      setMessage("Institute added successfully!");
+      const successMsg = "Institute added successfully!";
+      toast.success(successMsg);
       setTimeout(() => navigate("/admin"), 1500);
     } catch (err) {
-      setMessage(err.response?.data?.error || "❌ Failed to add institute");
+      const errorMsg =
+        err.response?.data?.error || "❌ Failed to add institute";
+      setMessage(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -179,12 +185,6 @@ const AddInstitute = () => {
               </button>
             </div>
           </form>
-
-          {message && (
-            <p className="mt-4 text-sm font-medium text-center text-indigo-700">
-              {message}
-            </p>
-          )}
         </div>
       </div>
     </div>

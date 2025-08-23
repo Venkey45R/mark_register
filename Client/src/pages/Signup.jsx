@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -20,7 +21,7 @@ const Signup = () => {
 
     const usernamePattern = /^[^@]+@[^@]+$/;
     if (!usernamePattern.test(formData.username)) {
-      alert("Username must be in the format: username@institute");
+      toast.error("Username must be in the format: username@institute");
       return;
     }
 
@@ -28,18 +29,22 @@ const Signup = () => {
       // 1️⃣ Check if institute exists
       const res = await axios.get(`/institutes?name=${formData.institution}`);
       if (!res.data || res.data.length === 0) {
-        alert("Institution not found in our records. Please contact admin.");
+        toast.error(
+          "Institution not found in our records. Please contact admin."
+        );
         return;
       }
 
       // 2️⃣ Proceed with signup
       await axios.post("/signup", { formData });
-
+      toast.success("signup succesful");
       // 3️⃣ Redirect immediately
       navigate("/wait");
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Signup Failed. Please try again.");
+      toast.error(
+        err.response?.data?.message || "Signup Failed. Please try again."
+      );
     }
   };
 

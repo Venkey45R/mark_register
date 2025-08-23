@@ -179,18 +179,30 @@ const ReportCard = () => {
               <h3 className="mb-3 text-lg font-semibold text-center text-indigo-600 underline">
                 {exam.ExamType} – {exam.ExamName}
               </h3>
-
               <table className="w-full text-sm text-center border border-collapse border-gray-400">
                 <thead className="text-white bg-indigo-700">
                   <tr>
                     <th className="p-2 border">Date</th>
-                    {Object.keys(exam.ExamData.subjectScores || {}).map(
-                      (subj, i) => (
-                        <th key={i} className="p-2 capitalize border">
-                          {subj}
-                        </th>
+
+                    {/* If IIT -> show Subject1-4 */}
+                    {exam.ExamType === "IIT" ? (
+                      <>
+                        <th className="p-2 border">Subject 1</th>
+                        <th className="p-2 border">Subject 2</th>
+                        <th className="p-2 border">Subject 3</th>
+                        <th className="p-2 border">Subject 4</th>
+                      </>
+                    ) : (
+                      // Else for CDF -> dynamic subjectScores keys
+                      Object.keys(exam.ExamData.subjectScores || {}).map(
+                        (subj, i) => (
+                          <th key={i} className="p-2 capitalize border">
+                            {subj}
+                          </th>
+                        )
                       )
                     )}
+
                     <th className="p-2 border">Total Marks</th>
                     <th className="p-2 border">Rank</th>
                   </tr>
@@ -202,13 +214,34 @@ const ReportCard = () => {
                         ? new Date(exam.ExamData.examDate).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    {Object.values(exam.ExamData.subjectScores || {}).map(
-                      (score, i) => (
-                        <td key={i} className="p-2 border">
-                          {score}
+
+                    {/* If IIT -> print subject1-4 */}
+                    {exam.ExamType === "IIT" ? (
+                      <>
+                        <td className="p-2 border">
+                          {exam.ExamData.subject1 ?? "-"}
                         </td>
+                        <td className="p-2 border">
+                          {exam.ExamData.subject2 ?? "-"}
+                        </td>
+                        <td className="p-2 border">
+                          {exam.ExamData.subject3 ?? "-"}
+                        </td>
+                        <td className="p-2 border">
+                          {exam.ExamData.subject4 ?? "-"}
+                        </td>
+                      </>
+                    ) : (
+                      // Else for CDF -> subjectScores values
+                      Object.values(exam.ExamData.subjectScores || {}).map(
+                        (score, i) => (
+                          <td key={i} className="p-2 border">
+                            {score}
+                          </td>
+                        )
                       )
                     )}
+
                     <td className="p-2 border">{exam.ExamData.totalMarks}</td>
                     <td className="p-2 border">{exam.ExamData.rank}</td>
                   </tr>

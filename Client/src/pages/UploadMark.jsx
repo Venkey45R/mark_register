@@ -3,16 +3,46 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import axios from "../api/axios";
 import Navbar from "../components/NavBar";
+import { useUser } from "../components/UserContext";
+import toast from "react-hot-toast";
 
 const UploadMarks = () => {
+  const { institute } = useUser();
   const [students, setStudents] = useState([]);
   const [studentsArray, setStudentsArray] = useState([]);
   const [fileName, setFileName] = useState("Not selected");
   const [inchargeClasses, setInchargeClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [testType, setTestType] = useState("IIT");
+  const [instituteId, setInstituteId] = useState(null);
+  const [subjectKeys, setSubjectKeys] = useState([]);
   const fileRef = useRef();
 
+  // ✅ Fetch instituteId like in InstituteDetails
+  useEffect(() => {
+    const fetchInstitute = async () => {
+      if (institute?._id) {
+        setInstituteId(institute._id);
+      } else {
+        try {
+          const res = await axios.get(
+            "http://localhost:3001/api/current-user",
+            {
+              withCredentials: true,
+            }
+          );
+          if (res.data?.institution?._id) {
+            setInstituteId(res.data.institution._id);
+          }
+        } catch (err) {
+          console.error("Error fetching instituteId:", err);
+        }
+      }
+    };
+    fetchInstitute();
+  }, [institute]);
+
+  // ✅ Fetch classes for incharge
   useEffect(() => {
     const fetchInchargeClasses = async () => {
       try {
@@ -78,74 +108,41 @@ const UploadMarks = () => {
   };
 
   const formatStudentData = (data) => {
-    if (!Array.isArray(data)) return;
+    // figure out subject columns from the first row
+    const subKeys = getSubjectKeys(data[0], testType);
+    setSubjectKeys(subKeys);
 
     let formatted = [];
-
     if (testType === "IIT") {
-      formatted = data.map((student) => {
-        const answers = [];
-        for (let i = 1; i <= 90; i++) {
-          answers.push({
-            questionNumber: i,
-            correctOption: student[`Q ${i} Key`] || "-",
-            selectedOption: student[`Q ${i} Options`] || "-",
-          });
-        }
-
-        return {
-          rollNo: student["Roll No"] || student["ROLL NO"] || "",
-          name: student["Name"] || student["NAME"] || "",
-          exam: {
-            examType: "IIT",
-            examName: student["Exam"] || student["EXAM"] || "",
-            examSet: student["Exam set"] || student["EXAM SET"] || "",
-            totalMarks: num(student["Total Marks"]),
-            grade: student["Grade"] || student["GRADE"] || "",
-            rank: int(student["Rank"]),
-            correctAnswers: int(student["Correct Answers"]),
-            incorrectAnswers: int(student["Incorrect Answers"]),
-            notAttempted: int(student["Not attempted"]),
-            subjectScores: {
-              subject1: num(student["Subject 1"]),
-              subject2: num(student["Subject 2"]),
-              subject3: num(student["Subject 3"]),
-              subject4: num(student["Subject 4"]),
-            },
-            subjectRanks: {
-              subject1: 0,
-              subject2: 0,
-              subject3: 0,
-              subject4: 0,
-            },
-            answers,
-          },
-        };
-      });
-    } else if (testType === "CDF") {
       formatted = data.map((row) => {
         return {
-          rollNo: row["ROLL NO"]?.toString().trim() || row["Roll No"] || "",
-          name: row["NAME OF THE STUDENT"] || row["Name"] || "",
-          exam: {
-            examType: "CDF",
-            examName: row["TEST NAME"] || "",
-            examDate: row["DATE OF TEST"] || "",
-            totalMarks: num(row["TM"]),
-            rank: int(row["TR"]),
-            subjectScores: {
-              maths: num(row["MM"]),
-              physics: num(row["PM"]),
-              chemistry: num(row["CM"]),
-              biology: num(row["BM"]),
-            },
-            subjectRanks: {
-              maths: int(row["MR"]),
-              physics: int(row["PR"]),
-              chemistry: int(row["CR"]),
-              biology: int(row["BR"]),
-            },
-          },
+          rollNo: row["Roll No"] || row["ROLL NO"],
+          name: row["Name"] || row["NAME"],
+          examName: row["Exam"] || row["EXAM"],
+
+          // ✅ only store subject1–4 marks
+          subject1: num(row["Subject 1"] || row["Physics"] || row["S1"]),
+          subject2: num(row["Subject 2"] || row["Chemistry"] || row["S2"]),
+          subject3: num(row["Subject 3"] || row["Maths"] || row["S3"]),
+          subject4: num(row["Subject 4"] || row["Biology"] || row["S4"]),
+
+          totalMarks: num(row["Total Marks"]),
+          rank: int(row["Rank"]),
+        };
+      });
+    } else {
+      // CDF
+      formatted = data.map((row) => {
+        const subjectScores = {};
+        subKeys.forEach((k) => (subjectScores[k.trim()] = num(row[k])));
+
+        return {
+          rollNo: row["ROLL NO"],
+          name: row["NAME OF THE STUDENT"],
+          examName: row["TEST NAME"], // keep it flat
+          totalMarks: num(row["TM"]),
+          rank: int(row["TR"]),
+          subjectScores, // <-- send this
         };
       });
     }
@@ -162,6 +159,10 @@ const UploadMarks = () => {
       alert("No data to upload. Please choose a file.");
       return;
     }
+    if (!instituteId) {
+      alert("Institute not loaded yet. Try again.");
+      return;
+    }
 
     try {
       await axios.post(
@@ -170,6 +171,7 @@ const UploadMarks = () => {
           students: studentsArray,
           classId: selectedClassId,
           testType,
+          instituteId, // ✅ include institute
         },
         {
           headers: { "Content-Type": "application/json" },
@@ -177,7 +179,7 @@ const UploadMarks = () => {
         }
       );
 
-      alert("Upload successful ✅");
+      toast.success("Upload successful ✅");
       setStudents([]);
       setStudentsArray([]);
       setFileName("Not selected");
@@ -192,6 +194,29 @@ const UploadMarks = () => {
     v === undefined || v === null || v === "" ? 0 : Number(v);
   const int = (v) =>
     v === undefined || v === null || v === "" ? 0 : parseInt(v, 10);
+
+  const getSubjectKeys = (row, type) => {
+    if (!row) return [];
+    const ignoreIIT = [
+      "Roll No",
+      "ROLL NO",
+      "Exam",
+      "EXAM",
+      "Name",
+      "NAME",
+      "Total Marks",
+      "Rank",
+    ];
+    const ignoreCDF = [
+      "ROLL NO",
+      "TEST NAME",
+      "NAME OF THE STUDENT",
+      "TM",
+      "TR",
+    ];
+    const ignore = type === "CDF" ? ignoreCDF : ignoreIIT;
+    return Object.keys(row).filter((k) => k && !ignore.includes(k));
+  };
 
   return (
     <>
@@ -273,29 +298,31 @@ const UploadMarks = () => {
           {students.length > 0 && testType === "IIT" && (
             <div className="mt-8 overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
               <table className="w-full text-sm text-center border-collapse">
-                <thead className="text-white bg-indigo-600">
-                  <tr>
+                <thead>
+                  <tr className="text-white bg-blue-700">
                     <th className="p-2 border">Roll No</th>
                     <th className="p-2 border">Exam</th>
                     <th className="p-2 border">Name</th>
+                    <th className="p-2 border">Subject1</th>
+                    <th className="p-2 border">Subject2</th>
+                    <th className="p-2 border">Subject3</th>
+                    <th className="p-2 border">Subject4</th>
                     <th className="p-2 border">Total Marks</th>
                     <th className="p-2 border">Rank</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white">
-                  {students.slice(0, 50).map((student, index) => (
-                    <tr key={index} className="hover:bg-indigo-50">
-                      <td className="p-2 border">
-                        {student["Roll No"] || student["ROLL NO"]}
-                      </td>
-                      <td className="p-2 border">
-                        {student["Exam"] || student["EXAM"]}
-                      </td>
-                      <td className="p-2 border">
-                        {student["Name"] || student["NAME"]}
-                      </td>
-                      <td className="p-2 border">{student["Total Marks"]}</td>
-                      <td className="p-2 border">{student["Rank"]}</td>
+                <tbody>
+                  {studentsArray.map((row, i) => (
+                    <tr key={i}>
+                      <td className="p-2 border">{row.rollNo}</td>
+                      <td className="p-2 border">{row.examName}</td>
+                      <td className="p-2 border">{row.name}</td>
+                      <td className="p-2 border">{row.subject1}</td>
+                      <td className="p-2 border">{row.subject2}</td>
+                      <td className="p-2 border">{row.subject3}</td>
+                      <td className="p-2 border">{row.subject4}</td>
+                      <td className="p-2 border">{row.totalMarks}</td>
+                      <td className="p-2 border">{row.rank}</td>
                     </tr>
                   ))}
                 </tbody>

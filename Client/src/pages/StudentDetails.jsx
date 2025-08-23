@@ -2,11 +2,35 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar";
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+} from "chart.js";
+import { Bar, Pie } from "react-chartjs-2";
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement
+);
 
 const StudentDetails = () => {
   const [assignedClasses, setAssignedClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [students, setStudents] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [selectedExamId, setSelectedExamId] = useState("");
+  const [examStats, setExamStats] = useState(null);
   const navigate = useNavigate();
 
   // Fetch current incharge and assigned classes
@@ -47,13 +71,63 @@ const StudentDetails = () => {
         );
 
         setStudents(res.data);
+
+        // Fetch exams for this class
+        const examRes = await axios.get(
+          `http://localhost:3001/api/class-exams/${selectedClassId}`,
+          { withCredentials: true }
+        );
+        setExams(examRes.data);
       } catch (err) {
-        console.error("Failed to fetch students", err);
+        console.error("Failed to fetch students or exams", err);
       }
     };
 
     fetchStudents();
   }, [selectedClassId]);
+
+  // Fetch exam stats when an exam is selected
+  useEffect(() => {
+    const fetchExamStats = async () => {
+      if (!selectedExamId) return;
+
+      try {
+        const res = await axios.get(
+          `http://localhost:3001/api/exam-stats/${selectedExamId}`,
+          { withCredentials: true }
+        );
+
+        setExamStats(res.data); // should return marks distribution per subject or student
+      } catch (err) {
+        console.error("Failed to fetch exam stats", err);
+      }
+    };
+
+    fetchExamStats();
+  }, [selectedExamId]);
+
+  // Chart setup
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: false },
+    },
+  };
+
+  const chartData = examStats && {
+    labels: examStats.map((s) => s.subject),
+    datasets: [
+      {
+        label: "Average Marks",
+        data: examStats.map((s) => s.averageMarks),
+        backgroundColor: "rgba(99, 102, 241, 0.7)",
+        borderColor: "rgba(99, 102, 241, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
 
   return (
     <>
@@ -64,7 +138,7 @@ const StudentDetails = () => {
         </h1>
 
         {/* Class Selector */}
-        <div className="max-w-lg p-6 mx-auto mb-8 bg-white shadow-xl rounded-3xl">
+        <div className="max-w-lg p-6 mx-auto mb-6 bg-white shadow-xl rounded-3xl">
           <label className="block mb-2 font-medium text-gray-700">
             Select Class:
           </label>
@@ -82,9 +156,42 @@ const StudentDetails = () => {
           </select>
         </div>
 
+        {/* Exam Selector */}
+        {exams.length > 0 && (
+          <div className="max-w-lg p-6 mx-auto mb-6 bg-white shadow-xl rounded-3xl">
+            <label className="block mb-2 font-medium text-gray-700">
+              Select Exam:
+            </label>
+            <select
+              value={selectedExamId}
+              onChange={(e) => setSelectedExamId(e.target.value)}
+              className="block w-full p-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">-- Choose an exam --</option>
+              {exams.map((exam) => (
+                <option key={exam._id} value={exam._id}>
+                  {exam.examName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Mobile-friendly Exam Chart */}
+        {examStats && (
+          <div className="max-w-3xl p-6 mx-auto mt-8 bg-white shadow-xl rounded-3xl">
+            <h2 className="mb-4 text-xl font-bold text-center text-indigo-700">
+              📊 Exam Performance
+            </h2>
+            <div className="h-[350px]">
+              <Bar data={chartData} options={chartOptions} />
+            </div>
+          </div>
+        )}
+
         {/* Student Table */}
         {students.length > 0 ? (
-          <div className="overflow-auto bg-white border shadow-xl rounded-3xl">
+          <div className="mt-10 overflow-auto bg-white border shadow-xl rounded-3xl">
             <table className="w-full text-sm text-center border-collapse">
               <thead className="text-white bg-indigo-700">
                 <tr>

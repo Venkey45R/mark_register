@@ -22,9 +22,11 @@ import ManagerPage from "./pages/ManagerPage";
 import WelcomePage from "./pages/WelcomePage";
 import UploadLogo from "./pages/UploadLogo";
 import InstituteDetails from "./pages/InstituteDetails";
+import { Toaster } from "react-hot-toast";
 
 const App = () => (
   <Router>
+    <Toaster position="top-center" />
     <Routes>
       <Route path="/" element={<RoleRedirector />} />
       <Route

@@ -77,26 +77,107 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
-app.post("/api/upload", async (req, res) => {
-  const { students, classId, testType } = req.body;
+// app.post("/api/upload", async (req, res) => {
+//   const { students, classId, testType, instituteId } = req.body;
 
-  if (!classId || !students?.length || !testType) {
+//   if (!classId || !students?.length || !testType || !instituteId) {
+//     return res.status(400).json({ message: "Missing data" });
+//   }
+
+//   try {
+//     await Promise.all(
+//       students.map(async (student, i) => {
+//         // Ensure examName is never blank
+//         let examName =
+//           student.exam?.examName && student.exam.examName.trim() !== ""
+//             ? student.exam.examName.trim()
+//             : `${testType}-Test-${i + 1}`;
+
+//         const newExam = {
+//           ExamType: testType, // IIT or CDF
+//           ExamName: examName, // guaranteed non-empty
+//           ExamData: student.exam, // full JSON
+//         };
+
+//         let existingStudent = await Student.findOne({ rollNo: student.rollNo });
+
+//         if (!existingStudent) {
+//           const created = await Student.create({
+//             rollNo: student.rollNo,
+//             name: student.name,
+//             class: classId,
+//             exams: [newExam],
+//           });
+
+//           await Class.findByIdAndUpdate(classId, {
+//             $addToSet: { students: created._id },
+//           });
+//         } else {
+//           const idx = existingStudent.exams.findIndex(
+//             (e) =>
+//               e.ExamName === newExam.ExamName && e.ExamType === newExam.ExamType
+//           );
+
+//           if (idx !== -1) {
+//             existingStudent.exams[idx] = newExam;
+//           } else {
+//             existingStudent.exams.push(newExam);
+//           }
+
+//           await existingStudent.save();
+//           await Class.findByIdAndUpdate(classId, {
+//             $addToSet: { students: existingStudent._id },
+//           });
+//         }
+//       })
+//     );
+
+//     res.status(200).json({ message: "Upload successful ✅" });
+//   } catch (err) {
+//     console.error("Upload error:", err);
+//     res.status(500).json({ message: "Server error during upload" });
+//   }
+// });
+
+app.post("/api/upload", async (req, res) => {
+  const { students, classId, testType, instituteId } = req.body;
+
+  if (!classId || !students?.length || !testType || !instituteId) {
     return res.status(400).json({ message: "Missing data" });
   }
 
   try {
     await Promise.all(
       students.map(async (student, i) => {
-        // Ensure examName is never blank
+        // exam name (fallback if blank)
         let examName =
-          student.exam?.examName && student.exam.examName.trim() !== ""
-            ? student.exam.examName.trim()
+          student.examName && student.examName.trim() !== ""
+            ? student.examName.trim()
             : `${testType}-Test-${i + 1}`;
 
+        // ✅ Build exam data differently for IIT vs CDF
+        let examData;
+        if (testType === "IIT") {
+          examData = {
+            totalMarks: student.totalMarks,
+            rank: student.rank,
+            subject1: student.subject1,
+            subject2: student.subject2,
+            subject3: student.subject3,
+            subject4: student.subject4,
+          };
+        } else {
+          examData = {
+            totalMarks: student.totalMarks,
+            rank: student.rank,
+            subjectScores: student.subjectScores || {},
+          };
+        }
+
         const newExam = {
-          ExamType: testType, // IIT or CDF
-          ExamName: examName, // guaranteed non-empty
-          ExamData: student.exam, // full JSON
+          ExamType: testType,
+          ExamName: examName,
+          ExamData: examData,
         };
 
         let existingStudent = await Student.findOne({ rollNo: student.rollNo });
@@ -106,6 +187,7 @@ app.post("/api/upload", async (req, res) => {
             rollNo: student.rollNo,
             name: student.name,
             class: classId,
+            institute: instituteId,
             exams: [newExam],
           });
 
@@ -124,7 +206,9 @@ app.post("/api/upload", async (req, res) => {
             existingStudent.exams.push(newExam);
           }
 
+          existingStudent.institute = instituteId;
           await existingStudent.save();
+
           await Class.findByIdAndUpdate(classId, {
             $addToSet: { students: existingStudent._id },
           });
@@ -136,6 +220,41 @@ app.post("/api/upload", async (req, res) => {
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ message: "Server error during upload" });
+  }
+});
+
+// get number of students grouped by institute
+app.get("/api/admin/institute-stats", async (req, res) => {
+  try {
+    const stats = await Student.aggregate([
+      {
+        $group: {
+          _id: "$institute",
+          studentCount: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "institutes",
+          localField: "_id",
+          foreignField: "_id",
+          as: "instituteDetails",
+        },
+      },
+      { $unwind: "$instituteDetails" },
+      {
+        $project: {
+          _id: 0,
+          instituteName: "$instituteDetails.name",
+          studentCount: 1,
+        },
+      },
+    ]);
+
+    res.json(stats);
+  } catch (err) {
+    console.error("Stats fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
@@ -219,8 +338,14 @@ app.get("/api/incharge-classes/:userId", async (req, res) => {
 // });
 app.post("/api/signup", async (req, res) => {
   const { username, password, name, institution, role } = req.body.formData;
-
+  if (!username || !password || !name || !institution) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
   try {
+    const user = await User.findOne({ username });
+    if (user) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
     // If institution is string, find its ObjectId
     let institutionId = institution;
     if (typeof institution === "string") {
@@ -629,6 +754,13 @@ app.delete("/users/:id", async (req, res) => {
 //post
 app.post("/api/institutes", auth, async (req, res) => {
   try {
+    const inst = await Institute.findOne({
+      instituteCode: req.body.instituteCode,
+    });
+    console.log("Received institute data:", req.body);
+    if (inst) {
+      return res.status(400).json({ error: "Institute already exists" });
+    }
     const newInstitute = new Institute(req.body);
     const savedInstitute = await newInstitute.save();
     res.status(201).json(savedInstitute);

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -16,9 +17,12 @@ const Login = () => {
       await axios.post("http://localhost:3001/api/login", form, {
         withCredentials: true,
       });
+      toast.success("Signin successful!");
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Login Failed");
+      const errorMessage = err.response?.data?.message || "Login Failed";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -65,11 +69,6 @@ const Login = () => {
             Create one
           </Link>
         </p>
-
-        {/* Error message */}
-        {message && (
-          <p className="mt-4 text-sm text-center text-red-600">{message}</p>
-        )}
       </div>
     </div>
   );
