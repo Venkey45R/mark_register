@@ -116,6 +116,7 @@ const UploadMarks = () => {
     if (testType === "IIT") {
       formatted = data.map((row) => {
         return {
+          date: row["DATE OF TEST"],
           rollNo: row["Roll No"] || row["ROLL NO"],
           name: row["Name"] || row["NAME"],
           examName: row["Exam"] || row["EXAM"],
@@ -137,6 +138,7 @@ const UploadMarks = () => {
         subKeys.forEach((k) => (subjectScores[k.trim()] = num(row[k])));
 
         return {
+          date: row["DATE OF TEST"],
           rollNo: row["ROLL NO"],
           name: row["NAME OF THE STUDENT"],
           examName: row["TEST NAME"], // keep it flat

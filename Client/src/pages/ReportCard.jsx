@@ -14,7 +14,103 @@ const ReportCard = () => {
   const reportRef = useRef();
   const { institute } = useUser();
 
-  // 🔹 Fetch student data
+  // ---- helpers ----
+  const num = (val) => {
+    if (val === undefined || val === null || val === "") return 0;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Normalize older IIT records into subject1–4 if needed
+  const normalizeIITExam = (exam) => {
+    if (exam.ExamType !== "IIT" || !exam.ExamData) return exam;
+    return {
+      ...exam,
+      ExamData: {
+        ...exam.ExamData,
+        subject1: num(
+          exam.ExamData.subject1 ||
+            exam.ExamData["Subject1"] ||
+            exam.ExamData["Subject 1"] ||
+            exam.ExamData["Physics"] ||
+            exam.ExamData["S1"]
+        ),
+        subject2: num(
+          exam.ExamData.subject2 ||
+            exam.ExamData["Subject2"] ||
+            exam.ExamData["Subject 2"] ||
+            exam.ExamData["Chemistry"] ||
+            exam.ExamData["S2"]
+        ),
+        subject3: num(
+          exam.ExamData.subject3 ||
+            exam.ExamData["Subject3"] ||
+            exam.ExamData["Subject 3"] ||
+            exam.ExamData["Maths"] ||
+            exam.ExamData["S3"]
+        ),
+        subject4: num(
+          exam.ExamData.subject4 ||
+            exam.ExamData["Subject4"] ||
+            exam.ExamData["Subject 4"] ||
+            exam.ExamData["Biology"] ||
+            exam.ExamData["S4"]
+        ),
+      },
+    };
+  };
+
+  // ---- fix for oklch/oklab colors (Option 2) ----
+  const containsUnsupportedColor = (v) =>
+    /(oklch|oklab|lch\(|lab\(|color\(display-p3)/i.test(v || "");
+
+  const sanitizeForHtml2Canvas = (root) => {
+    if (!root) return () => {};
+    const nodes = [root, ...root.querySelectorAll("*")];
+    const restoreFns = [];
+
+    nodes.forEach((el) => {
+      const cs = window.getComputedStyle(el);
+
+      // background-image may contain gradients with oklch
+      const bgImg = cs.getPropertyValue("background-image");
+      if (bgImg && containsUnsupportedColor(bgImg)) {
+        const prev = el.style.getPropertyValue("background-image");
+        restoreFns.push(() => el.style.setProperty("background-image", prev));
+        el.style.setProperty("background-image", "none", "important");
+      }
+
+      // properties to check
+      const props = [
+        "color",
+        "background-color",
+        "border-color",
+        "outline-color",
+        "text-decoration-color",
+        "column-rule-color",
+      ];
+      const sides = [
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+      ];
+
+      [...props, ...sides].forEach((prop) => {
+        const val = cs.getPropertyValue(prop);
+        if (val && containsUnsupportedColor(val)) {
+          const prev = el.style.getPropertyValue(prop);
+          restoreFns.push(() => el.style.setProperty(prop, prev));
+          const fallback = prop.includes("background") ? "#ffffff" : "#000000";
+          el.style.setProperty(prop, fallback, "important");
+        }
+      });
+    });
+
+    return () => restoreFns.reverse().forEach((fn) => fn());
+  };
+
+  // ---- Fetch data ----
   useEffect(() => {
     axios
       .get(`http://localhost:3001/api/report/${rollNo}`, {
@@ -22,15 +118,15 @@ const ReportCard = () => {
       })
       .then((res) => {
         const student = Array.isArray(res.data) ? res.data[0] : res.data;
-        setStudentData({
-          ...student,
-          exams: student.exams || [],
-        });
+        const normalizedExams = (student.exams || []).map((e) =>
+          normalizeIITExam(e)
+        );
+        setStudentData({ ...student, exams: normalizedExams });
       })
       .catch((err) => console.error(err));
   }, [rollNo]);
 
-  // 🔹 Fetch institute logo
+  // institute logo
   useEffect(() => {
     const fetchInstituteLogo = async () => {
       try {
@@ -47,7 +143,8 @@ const ReportCard = () => {
             `http://localhost:3001/api/institutes?name=${userRes.data.institution}`,
             { withCredentials: true }
           );
-          instituteId = instRes.data._id;
+          // NOTE: adjust if your API returns array
+          instituteId = instRes.data?._id || instRes.data?.[0]?._id || "";
         }
 
         if (!instituteId) return;
@@ -95,7 +192,11 @@ const ReportCard = () => {
       return;
     }
 
+    let restore = () => {};
     try {
+      // ⬇️ temporarily force safe colors inside the printable node
+      restore = sanitizeForHtml2Canvas(reportRef.current);
+
       const element = reportRef.current;
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -114,6 +215,9 @@ const ReportCard = () => {
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("Download failed. Please try again.");
+    } finally {
+      // ⬆️ restore original styles
+      restore();
     }
   };
 
@@ -179,69 +283,122 @@ const ReportCard = () => {
               <h3 className="mb-3 text-lg font-semibold text-center text-indigo-600 underline">
                 {exam.ExamType} – {exam.ExamName}
               </h3>
-              <table className="w-full text-sm text-center border border-collapse border-gray-400">
-                <thead className="text-white bg-indigo-700">
-                  <tr>
-                    <th className="p-2 border">Date</th>
 
-                    {/* If IIT -> show Subject1-4 */}
+              <table className="w-full text-sm text-center border border-collapse border-gray-400">
+                <thead>
+                  <tr>
+                    <th
+                      className="p-2 border"
+                      style={{ backgroundColor: "#1e40af", color: "#ffffff" }}
+                    >
+                      Date
+                    </th>
+
                     {exam.ExamType === "IIT" ? (
                       <>
-                        <th className="p-2 border">Subject 1</th>
-                        <th className="p-2 border">Subject 2</th>
-                        <th className="p-2 border">Subject 3</th>
-                        <th className="p-2 border">Subject 4</th>
+                        <th
+                          className="p-2 border"
+                          style={{
+                            backgroundColor: "#1e40af",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Physics
+                        </th>
+                        <th
+                          className="p-2 border"
+                          style={{
+                            backgroundColor: "#1e40af",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Chemistry
+                        </th>
+                        <th
+                          className="p-2 border"
+                          style={{
+                            backgroundColor: "#1e40af",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Maths
+                        </th>
+                        <th
+                          className="p-2 border"
+                          style={{
+                            backgroundColor: "#1e40af",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Biology
+                        </th>
                       </>
                     ) : (
-                      // Else for CDF -> dynamic subjectScores keys
-                      Object.keys(exam.ExamData.subjectScores || {}).map(
-                        (subj, i) => (
-                          <th key={i} className="p-2 capitalize border">
+                      Object.keys(exam.ExamData.subjectScores || {})
+                        .filter((subj) => subj.toLowerCase() !== "date of test") // ⬅️ remove duplicate
+                        .map((subj, i) => (
+                          <th
+                            key={i}
+                            className="p-2 capitalize border"
+                            style={{
+                              backgroundColor: "#1e40af",
+                              color: "#ffffff",
+                            }}
+                          >
                             {subj}
                           </th>
-                        )
-                      )
+                        ))
                     )}
 
-                    <th className="p-2 border">Total Marks</th>
-                    <th className="p-2 border">Rank</th>
+                    <th
+                      className="p-2 border"
+                      style={{ backgroundColor: "#1e40af", color: "#ffffff" }}
+                    >
+                      Total Marks
+                    </th>
+                    <th
+                      className="p-2 border"
+                      style={{ backgroundColor: "#1e40af", color: "#ffffff" }}
+                    >
+                      Rank
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody>
                   <tr>
-                    <td className="p-2 border">
-                      {exam.ExamData.examDate
-                        ? new Date(exam.ExamData.examDate).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-
-                    {/* If IIT -> print subject1-4 */}
                     {exam.ExamType === "IIT" ? (
                       <>
+                        {/* Date column */}
                         <td className="p-2 border">
-                          {exam.ExamData.subject1 ?? "-"}
+                          {exam.ExamData.date || "-"}
                         </td>
-                        <td className="p-2 border">
-                          {exam.ExamData.subject2 ?? "-"}
-                        </td>
-                        <td className="p-2 border">
-                          {exam.ExamData.subject3 ?? "-"}
-                        </td>
-                        <td className="p-2 border">
-                          {exam.ExamData.subject4 ?? "-"}
-                        </td>
+
+                        <td className="p-2 border">{exam.ExamData.subject1}</td>
+                        <td className="p-2 border">{exam.ExamData.subject2}</td>
+                        <td className="p-2 border">{exam.ExamData.subject3}</td>
+                        <td className="p-2 border">{exam.ExamData.subject4}</td>
                       </>
                     ) : (
-                      // Else for CDF -> subjectScores values
-                      Object.values(exam.ExamData.subjectScores || {}).map(
-                        (score, i) => (
-                          <td key={i} className="p-2 border">
-                            {score}
-                          </td>
-                        )
-                      )
+                      <>
+                        {/* Date column */}
+                        <td className="p-2 border">
+                          {exam.ExamData.date || "-"}
+                        </td>
+
+                        {Object.entries(exam.ExamData.subjectScores || {})
+                          .filter(
+                            ([key]) => key.toLowerCase() !== "date of test"
+                          ) // ⬅️ remove duplicate
+                          .map(([_, score], i) => (
+                            <td key={i} className="p-2 border">
+                              {score ?? "-"}
+                            </td>
+                          ))}
+                      </>
                     )}
 
+                    {/* Total and Rank always last */}
                     <td className="p-2 border">{exam.ExamData.totalMarks}</td>
                     <td className="p-2 border">{exam.ExamData.rank}</td>
                   </tr>
