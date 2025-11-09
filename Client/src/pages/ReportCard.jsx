@@ -244,35 +244,28 @@ const ReportCard = () => {
           className="p-8 text-black bg-white border border-gray-300 shadow-lg rounded-xl"
         >
           {/* Logos Row */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-center gap-20 mb-6">
             <img
-              src={ke}
-              alt="Logo1"
-              className="h-10"
+              src={instituteLogo || ke}
+              alt="Institute Logo"
+              className="h-8"
               crossOrigin="anonymous"
             />
 
             <h2 className="text-2xl font-bold text-indigo-700">
               Academic Report Card
             </h2>
-
-            <img
-              src={instituteLogo || ke}
-              alt="Institute Logo"
-              className="h-10"
-              crossOrigin="anonymous"
-            />
+            <div className="mb-6 text-md">
+              <p className="mb-2">
+                <strong>Name:</strong> {studentData.name}
+              </p>
+              <p>
+                <strong>Roll No:</strong> {studentData.rollNo}
+              </p>
+            </div>
           </div>
 
           {/* Student Info */}
-          <div className="grid grid-cols-2 gap-4 mb-6 text-lg">
-            <p>
-              <strong>Name:</strong> {studentData.name}
-            </p>
-            <p>
-              <strong>Roll No:</strong> {studentData.rollNo}
-            </p>
-          </div>
 
           {/* Exams */}
           {studentData.exams.map((exam, idx) => (
@@ -404,28 +397,27 @@ const ReportCard = () => {
                   </tr>
                 </tbody>
               </table>
-
-              {/* Signatures */}
-              <div className="grid grid-cols-3 gap-8 mt-8 text-center">
-                <div>
-                  <div className="pt-2 border-t border-gray-600">Principal</div>
-                </div>
-                <div>
-                  <div className="pt-2 border-t border-gray-600">
-                    Class Teacher
-                  </div>
-                </div>
-                <div>
-                  <div className="pt-2 border-t border-gray-600">Guardian</div>
-                </div>
-              </div>
             </div>
           ))}
-
-          {/* Footer */}
-          <p className="mt-6 text-xs text-right text-gray-500">
-            Generated on {new Date().toLocaleString()}
-          </p>
+          <div className="flex justify-between py-4">
+            <img
+              src={ke}
+              alt="Logo1"
+              className="h-8 mt-6"
+              crossOrigin="anonymous"
+            />
+            <div className="grid grid-cols-3 gap-20 mt-8 text-center">
+              <div>
+                <div className="w-40 border-t border-gray-600">Principal</div>
+              </div>
+              <div>
+                <div className="border-t border-gray-600">Class Teacher</div>
+              </div>
+              <div>
+                <div className="border-t border-gray-600 ">Guardian</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

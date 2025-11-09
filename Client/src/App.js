@@ -23,6 +23,7 @@ import WelcomePage from "./pages/WelcomePage";
 import UploadLogo from "./pages/UploadLogo";
 import InstituteDetails from "./pages/InstituteDetails";
 import { Toaster } from "react-hot-toast";
+import DownloadAllReport from "./pages/DownloadAllReport";
 
 const App = () => (
   <Router>
@@ -142,7 +143,7 @@ const App = () => (
       <Route
         path="/update-institute"
         element={
-          <ProtectedRoute allowedRoles={["principal", "incharge"]}>
+          <ProtectedRoute allowedRoles={["principal", "incharge", "manager"]}>
             <InstituteDetails />
           </ProtectedRoute>
         }
@@ -191,6 +192,15 @@ const App = () => (
         element={
           <ProtectedRoute allowedRoles={["admin", "manager"]}>
             <AddInstitute />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/download-all-report"
+        element={
+          <ProtectedRoute allowedRoles={["incharge", "principal"]}>
+            <DownloadAllReport />
           </ProtectedRoute>
         }
       />

@@ -756,6 +756,81 @@ app.delete("/classes/:id", async (req, res) => {
   }
 });
 
+// Get latest exam results for all students in a class
+app.get("/api/class-latest-results/:classId", async (req, res) => {
+  try {
+    const classObj = await Class.findById(req.params.classId).populate(
+      "students"
+    );
+
+    if (!classObj) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    const results = classObj.students.map((student) => {
+      if (!student.exams || student.exams.length === 0) {
+        return {
+          name: student.name,
+          rollNo: student.rollNo,
+          latestExam: null,
+        };
+      }
+
+      // Pick last exam (since your upload pushes at the end)
+      const latestExam = student.exams[student.exams.length - 1];
+
+      return {
+        name: student.name,
+        rollNo: student.rollNo,
+        latestExam: {
+          examName: latestExam.ExamName,
+          examType: latestExam.ExamType,
+          totalMarks: latestExam.ExamData?.totalMarks || 0,
+          rank: latestExam.ExamData?.rank || null,
+        },
+      };
+    });
+
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching latest class results:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Bulk reports for a class
+app.get("/api/class-reports/:classId", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).populate("institution");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const classObj = await Class.findById(req.params.classId).populate(
+      "students"
+    );
+    if (!classObj) return res.status(404).json({ message: "Class not found" });
+
+    // Role-based access
+    if (user.role === "incharge") {
+      if (String(classObj.classTeacher) !== String(user._id)) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized for this class" });
+      }
+    } else if (user.role === "principal") {
+      if (String(classObj.institute) !== String(user.institution._id)) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized for this institute" });
+      }
+    }
+
+    res.status(200).json(classObj.students);
+  } catch (err) {
+    console.error("Error fetching class reports:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => console.log("started the server"));

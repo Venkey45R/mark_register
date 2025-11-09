@@ -6,6 +6,7 @@ import NavBar from "../components/NavBar";
 
 function InstituteDetails() {
   const { institute } = useUser();
+  console.log(institute);
   const [inst, setInst] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,8 +23,10 @@ function InstituteDetails() {
             "http://localhost:3001/api/current-user",
             { withCredentials: true }
           );
-          if (userRes.data?.institution?._id) {
-            instituteId = userRes.data.institution._id;
+
+          if (userRes.data?.institution) {
+            instituteId =
+              userRes.data.institution._id || userRes.data.institution;
           }
         } catch (err) {
           console.error("Error fetching current user:", err);
@@ -31,7 +34,6 @@ function InstituteDetails() {
           return;
         }
       }
-
       if (instituteId) {
         try {
           const res = await axios.get(

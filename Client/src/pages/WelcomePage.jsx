@@ -35,16 +35,18 @@ const roleFeatures = {
     { label: "See Results", navigateTo: "/see-results" },
     { label: "Institute Details", navigateTo: "/update-institute" },
     { label: "Update Logo", navigateTo: "/upload-logo" },
+    { label: "Download All Report Card", navigateTo: "/download-all-report" },
   ],
   incharge: [
     { label: "Upload Marks", navigateTo: "/upload-marks" },
     { label: "Student Details", navigateTo: "/student-details" },
     { label: "Institute Details", navigateTo: "/update-institute" },
+    { label: "Download All Report Card", navigateTo: "/download-all-report" },
   ],
   manager: [
     { label: "Manage Classes", navigateTo: "/manage-classes" },
     { label: "See Results", navigateTo: "/see-results" },
-    { label: "Update Institute Details", navigateTo: "/update-institute" },
+    { label: "Institute's Details", navigateTo: "/update-institute" },
   ],
 };
 
@@ -61,6 +63,8 @@ const WelcomePage = () => {
       .catch(() => navigate("/login"))
       .finally(() => setLoading(false));
   }, [navigate]);
+
+  console.log(role);
 
   // fetch stats if admin
   useEffect(() => {

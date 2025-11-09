@@ -2,11 +2,31 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const SeeResults = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [students, setStudents] = useState([]);
+  const [latestResults, setLatestResults] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,7 +36,7 @@ const SeeResults = () => {
           withCredentials: true,
         });
 
-        if (res.data.role !== "principal" || res.data.role === "manager") {
+        if (res.data.role !== "principal" || res.data.role !== "manager") {
           alert("Access denied. Only principals can view results.");
           return;
         }
@@ -45,13 +65,50 @@ const SeeResults = () => {
   const handleSelectClass = async (classId) => {
     setSelectedClassId(classId);
     try {
+      // get student basic info
       const res = await axios.get(`http://localhost:3001/classes/${classId}`, {
         withCredentials: true,
       });
       setStudents(res.data.students || []);
+
+      // get latest exam results for chart
+      const resultsRes = await axios.get(
+        `http://localhost:3001/api/class-latest-results/${classId}`,
+        { withCredentials: true }
+      );
+      setLatestResults(resultsRes.data);
     } catch (err) {
-      console.error("Error fetching students:", err);
+      console.error("Error fetching students/results:", err);
     }
+  };
+
+  // Chart Data
+  const chartData = {
+    labels: latestResults.map((s) => s.name),
+    datasets: [
+      {
+        label: "Latest Exam Marks",
+        data: latestResults.map((s) =>
+          s.latestExam ? s.latestExam.totalMarks : 0
+        ),
+        backgroundColor: "rgba(99, 102, 241, 0.7)", // indigo
+        borderColor: "rgba(79, 70, 229, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "📊 Latest Exam Marks Comparison" },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
   };
 
   return (
@@ -83,49 +140,60 @@ const SeeResults = () => {
               </div>
             ))}
           </div>
-
-          {/* Student Table */}
+          {/* Chart Section */}
+          {latestResults.length > 0 && (
+            <div className="p-6 my-6 bg-white border border-gray-200 shadow-lg rounded-3xl">
+              <Bar data={chartData} options={chartOptions} />
+            </div>
+          )}
+          {/* Student Table + Chart */}
           {selectedClassId && (
-            <div className="p-6 bg-white border border-gray-200 shadow-lg rounded-3xl">
-              <h2 className="mb-6 text-xl font-bold text-indigo-700">
-                👨‍🎓 Students in Selected Class
-              </h2>
+            <div className="space-y-10">
+              {/* Student Table */}
+              <div className="p-6 bg-white border border-gray-200 shadow-lg rounded-3xl">
+                <h2 className="mb-6 text-xl font-bold text-indigo-700">
+                  👨‍🎓 Students in Selected Class
+                </h2>
 
-              {students.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full overflow-hidden text-sm text-center border border-collapse rounded-lg">
-                    <thead className="text-white bg-gradient-to-r from-indigo-600 to-purple-600">
-                      <tr>
-                        <th className="p-3 border">Roll No</th>
-                        <th className="p-3 border">Name</th>
-                        <th className="p-3 border">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, idx) => (
-                        <tr key={idx} className="transition hover:bg-indigo-50">
-                          <td className="p-3 border">{student.rollNo}</td>
-                          <td className="p-3 border">{student.name}</td>
-                          <td className="p-3 border">
-                            <button
-                              onClick={() =>
-                                navigate(`/student-details/${student.rollNo}`)
-                              }
-                              className="px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                            >
-                              View Report
-                            </button>
-                          </td>
+                {students.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full overflow-hidden text-sm text-center border border-collapse rounded-lg">
+                      <thead className="text-white bg-gradient-to-r from-indigo-600 to-purple-600">
+                        <tr>
+                          <th className="p-3 border">Roll No</th>
+                          <th className="p-3 border">Name</th>
+                          <th className="p-3 border">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="mt-2 text-gray-600">
-                  No students found for this class.
-                </p>
-              )}
+                      </thead>
+                      <tbody>
+                        {students.map((student, idx) => (
+                          <tr
+                            key={idx}
+                            className="transition hover:bg-indigo-50"
+                          >
+                            <td className="p-3 border">{student.rollNo}</td>
+                            <td className="p-3 border">{student.name}</td>
+                            <td className="p-3 border">
+                              <button
+                                onClick={() =>
+                                  navigate(`/student-details/${student.rollNo}`)
+                                }
+                                className="px-4 py-2 text-sm font-medium text-white transition rounded-lg shadow bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                              >
+                                View Report
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-gray-600">
+                    No students found for this class.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
