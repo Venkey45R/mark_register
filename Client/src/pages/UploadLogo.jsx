@@ -15,9 +15,12 @@ const UploadLogo = () => {
   useEffect(() => {
     const fetchUserInstitution = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/current-user", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "https://mark-register.onrender.com/api/current-user",
+          {
+            withCredentials: true,
+          }
+        );
 
         if (res.data.role === "principal" || res.data.role === "manager") {
           let institutionId = "";
@@ -29,7 +32,7 @@ const UploadLogo = () => {
             institutionId = res.data.institution._id;
           } else if (typeof res.data.institution === "string") {
             const instRes = await axios.get(
-              `http://localhost:3001/api/institutes?name=${res.data.institution}`,
+              `https://mark-register.onrender.com/api/institutes?name=${res.data.institution}`,
               { withCredentials: true }
             );
 
@@ -44,7 +47,7 @@ const UploadLogo = () => {
           setUserInstitution(institutionId);
 
           const instituteRes = await axios.get(
-            `http://localhost:3001/institutes/${institutionId}`,
+            `https://mark-register.onrender.com/institutes/${institutionId}`,
             { withCredentials: true }
           );
           setCurrentLogo(instituteRes.data.logo || "");
@@ -64,11 +67,16 @@ const UploadLogo = () => {
   useEffect(() => {
     if (institute?._id) {
       axios
-        .get(`http://localhost:3001/api/institutes/${institute._id}`, {
-          withCredentials: true,
-        })
+        .get(
+          `https://mark-register.onrender.com/api/institutes/${institute._id}`,
+          {
+            withCredentials: true,
+          }
+        )
         .then((res) =>
-          setCurrentLogo(`http://localhost:3001${res.data.logo || ""}`)
+          setCurrentLogo(
+            `https://mark-register.onrender.com${res.data.logo || ""}`
+          )
         )
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -97,7 +105,7 @@ const UploadLogo = () => {
       formData.append("logo", logoFile);
 
       const res = await axios.put(
-        `http://localhost:3001/api/institutes/${institute._id}/logo`,
+        `https://mark-register.onrender.com/api/institutes/${institute._id}/logo`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -133,7 +141,7 @@ const UploadLogo = () => {
                 <div className="mb-6 text-center">
                   <p className="mb-2 text-gray-700">Current Logo:</p>
                   <img
-                    src={`http://localhost:3001${currentLogo}`}
+                    src={`https://mark-register.onrender.com${currentLogo}`}
                     alt="Institute Logo"
                     className="h-32 mx-auto border shadow-md rounded-xl"
                   />

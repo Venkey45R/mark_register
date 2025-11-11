@@ -10,7 +10,9 @@ const RoleRedirector = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3001/api/check-role", { withCredentials: true })
+      .get("https://mark-register.onrender.com/api/check-role", {
+        withCredentials: true,
+      })
       .then((res) => {
         const role = res.data.role;
         setInstitute(res.data.institute); // full object with _id, name, logo...

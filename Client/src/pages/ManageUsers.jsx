@@ -27,7 +27,9 @@ function ManageUsers() {
   const fetchUsers = useCallback(() => {
     setLoading(true);
     axios
-      .get("http://localhost:3001/users", { withCredentials: true })
+      .get("https://mark-register.onrender.com/users", {
+        withCredentials: true,
+      })
       .then((response) => {
         setUsers(response.data);
       })
@@ -44,7 +46,9 @@ function ManageUsers() {
     fetchUsers();
 
     axios
-      .get("http://localhost:3001/api/getUserRole", { withCredentials: true })
+      .get("https://mark-register.onrender.com/api/getUserRole", {
+        withCredentials: true,
+      })
       .then((res) => console.log("User Role Check:", res.data))
       .catch((error) => console.error("Error fetching user role:", error));
   }, [fetchUsers]);
@@ -62,7 +66,7 @@ function ManageUsers() {
   const handlePasswordChange = (userId, newPassword) => {
     return axios
       .post(
-        "http://localhost:3001/admin-change-password",
+        "https://mark-register.onrender.com/admin-change-password",
         { user_id: userId, newPassword },
         { withCredentials: true }
       )

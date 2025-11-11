@@ -58,7 +58,9 @@ const WelcomePage = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3001/api/check-role", { withCredentials: true })
+      .get("https://mark-register.onrender.com/api/check-role", {
+        withCredentials: true,
+      })
       .then((res) => setRole(res.data.role))
       .catch(() => navigate("/login"))
       .finally(() => setLoading(false));
@@ -70,7 +72,7 @@ const WelcomePage = () => {
   useEffect(() => {
     if (role === "admin") {
       axios
-        .get("http://localhost:3001/api/admin/institute-stats", {
+        .get("https://mark-register.onrender.com/api/admin/institute-stats", {
           withCredentials: true,
         })
         .then((res) => setStats(res.data))

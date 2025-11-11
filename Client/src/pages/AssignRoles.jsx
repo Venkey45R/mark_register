@@ -9,7 +9,9 @@ const AssignRoles = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3001/users", { withCredentials: true })
+      .get("https://mark-register.onrender.com/users", {
+        withCredentials: true,
+      })
       .then((res) => {
         const unassigned = res.data.filter((u) => u.role === "unassigned");
         setUsers(unassigned);
@@ -28,7 +30,7 @@ const AssignRoles = () => {
 
     try {
       await axios.put(
-        `http://localhost:3001/users/${userId}`,
+        `https://mark-register.onrender.com/users/${userId}`,
         { role: newRole },
         { withCredentials: true }
       );

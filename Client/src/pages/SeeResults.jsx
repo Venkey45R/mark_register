@@ -32,9 +32,12 @@ const SeeResults = () => {
   useEffect(() => {
     const fetchPrincipalClasses = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/current-user", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "https://mark-register.onrender.com/api/current-user",
+          {
+            withCredentials: true,
+          }
+        );
 
         if (res.data.role !== "principal" || res.data.role !== "manager") {
           alert("Access denied. Only principals can view results.");
@@ -47,7 +50,7 @@ const SeeResults = () => {
             : res.data.institution;
 
         const classRes = await axios.get(
-          `http://localhost:3001/classes/institute/${institutionId}`,
+          `https://mark-register.onrender.com/classes/institute/${institutionId}`,
           {
             withCredentials: true,
           }
@@ -66,14 +69,17 @@ const SeeResults = () => {
     setSelectedClassId(classId);
     try {
       // get student basic info
-      const res = await axios.get(`http://localhost:3001/classes/${classId}`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `https://mark-register.onrender.com/classes/${classId}`,
+        {
+          withCredentials: true,
+        }
+      );
       setStudents(res.data.students || []);
 
       // get latest exam results for chart
       const resultsRes = await axios.get(
-        `http://localhost:3001/api/class-latest-results/${classId}`,
+        `https://mark-register.onrender.com/api/class-latest-results/${classId}`,
         { withCredentials: true }
       );
       setLatestResults(resultsRes.data);

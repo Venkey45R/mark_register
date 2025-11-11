@@ -17,7 +17,7 @@ function DownloadAllReport() {
     const fetchAssignedClasses = async () => {
       try {
         const userRes = await axios.get(
-          "http://localhost:3001/api/current-user",
+          "https://mark-register.onrender.com/api/current-user",
           {
             withCredentials: true,
           }
@@ -25,13 +25,13 @@ function DownloadAllReport() {
 
         if (userRes.data.role === "incharge") {
           const classRes = await axios.get(
-            `http://localhost:3001/api/incharge-classes/${userRes.data._id}`,
+            `https://mark-register.onrender.com/api/incharge-classes/${userRes.data._id}`,
             { withCredentials: true }
           );
           setAssignedClasses(classRes.data);
         } else if (userRes.data.role === "principal") {
           const classRes = await axios.get(
-            `http://localhost:3001/classes/institute/${userRes.data.institution._id}`,
+            `https://mark-register.onrender.com/classes/institute/${userRes.data.institution._id}`,
             { withCredentials: true }
           );
           setAssignedClasses(classRes.data);
@@ -150,14 +150,14 @@ function DownloadAllReport() {
 
     try {
       const studentsRes = await axios.get(
-        `http://localhost:3001/api/class-reports/${selectedClassId}`,
+        `https://mark-register.onrender.com/api/class-reports/${selectedClassId}`,
         { withCredentials: true }
       );
       const students = studentsRes.data;
 
       for (let student of students) {
         const res = await axios.get(
-          `http://localhost:3001/api/report/${student.rollNo}`,
+          `https://mark-register.onrender.com/api/report/${student.rollNo}`,
           { withCredentials: true }
         );
         const studentData = Array.isArray(res.data) ? res.data[0] : res.data;

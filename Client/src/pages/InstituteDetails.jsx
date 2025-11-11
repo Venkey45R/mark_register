@@ -20,7 +20,7 @@ function InstituteDetails() {
       } else {
         try {
           const userRes = await axios.get(
-            "http://localhost:3001/api/current-user",
+            "https://mark-register.onrender.com/api/current-user",
             { withCredentials: true }
           );
 
@@ -37,7 +37,7 @@ function InstituteDetails() {
       if (instituteId) {
         try {
           const res = await axios.get(
-            `http://localhost:3001/institutes/${instituteId}`
+            `https://mark-register.onrender.com/institutes/${instituteId}`
           );
           setInst(res.data);
         } catch (err) {
@@ -88,7 +88,7 @@ function InstituteDetails() {
         {/* Header Card */}
         <div className="flex flex-col items-center gap-6 p-8 bg-white shadow-2xl rounded-3xl sm:flex-row sm:items-center">
           <img
-            src={`http://localhost:3001${inst.logo}`}
+            src={`https://mark-register.onrender.com${inst.logo}`}
             alt={inst.name}
             className="object-contain border-2 border-indigo-200 shadow-sm w-28 h-28 sm:w-36 sm:h-36 rounded-2xl"
           />

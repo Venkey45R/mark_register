@@ -26,7 +26,7 @@ const UploadMarks = () => {
       } else {
         try {
           const res = await axios.get(
-            "http://localhost:3001/api/current-user",
+            "https://mark-register.onrender.com/api/current-user",
             {
               withCredentials: true,
             }
@@ -46,9 +46,12 @@ const UploadMarks = () => {
   useEffect(() => {
     const fetchInchargeClasses = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/current-user", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "https://mark-register.onrender.com/api/current-user",
+          {
+            withCredentials: true,
+          }
+        );
 
         if (res.data.role !== "incharge") {
           alert("Only incharges can upload marks.");
@@ -56,7 +59,7 @@ const UploadMarks = () => {
         }
 
         const classRes = await axios.get(
-          `http://localhost:3001/api/incharge-classes/${res.data._id}`,
+          `https://mark-register.onrender.com/api/incharge-classes/${res.data._id}`,
           { withCredentials: true }
         );
 
@@ -168,7 +171,7 @@ const UploadMarks = () => {
 
     try {
       await axios.post(
-        "http://localhost:3001/api/upload",
+        "https://mark-register.onrender.com/api/upload",
         {
           students: studentsArray,
           classId: selectedClassId,

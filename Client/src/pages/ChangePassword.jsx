@@ -20,7 +20,7 @@ function ChangePassword() {
 
     try {
       const res = await axios.post(
-        "http://localhost:3001/change-password",
+        "https://mark-register.onrender.com/change-password",
         { existingPassword, newPassword },
         { withCredentials: true }
       );

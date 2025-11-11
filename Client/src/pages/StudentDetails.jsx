@@ -38,7 +38,7 @@ const StudentDetails = () => {
     const fetchAssignedClasses = async () => {
       try {
         const userRes = await axios.get(
-          "http://localhost:3001/api/current-user",
+          "https://mark-register.onrender.com/api/current-user",
           {
             withCredentials: true,
           }
@@ -46,7 +46,7 @@ const StudentDetails = () => {
         const inchargeId = userRes.data._id;
 
         const classRes = await axios.get(
-          `http://localhost:3001/api/incharge-classes/${inchargeId}`,
+          `https://mark-register.onrender.com/api/incharge-classes/${inchargeId}`,
           { withCredentials: true }
         );
 
@@ -66,7 +66,7 @@ const StudentDetails = () => {
 
       try {
         const res = await axios.get(
-          `http://localhost:3001/api/class-students/${selectedClassId}`,
+          `https://mark-register.onrender.com/api/class-students/${selectedClassId}`,
           { withCredentials: true }
         );
 
@@ -74,7 +74,7 @@ const StudentDetails = () => {
 
         // Fetch exams for this class
         const examRes = await axios.get(
-          `http://localhost:3001/api/class-exams/${selectedClassId}`,
+          `https://mark-register.onrender.com/api/class-exams/${selectedClassId}`,
           { withCredentials: true }
         );
         setExams(examRes.data);
@@ -93,7 +93,7 @@ const StudentDetails = () => {
 
       try {
         const res = await axios.get(
-          `http://localhost:3001/api/exam-stats/${selectedExamId}`,
+          `https://mark-register.onrender.com/api/exam-stats/${selectedExamId}`,
           { withCredentials: true }
         );
 

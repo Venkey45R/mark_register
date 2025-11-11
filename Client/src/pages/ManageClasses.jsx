@@ -17,9 +17,12 @@ const ManageClasses = () => {
   useEffect(() => {
     const fetchUserInstitution = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/current-user", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "https://mark-register.onrender.com/api/current-user",
+          {
+            withCredentials: true,
+          }
+        );
 
         if (res.data.role === "principal" || res.data.role === "manager") {
           const institutionId =
@@ -44,11 +47,11 @@ const ManageClasses = () => {
     const fetchData = async () => {
       try {
         const classRes = await axios.get(
-          `http://localhost:3001/classes/institute/${userInstitution}`,
+          `https://mark-register.onrender.com/classes/institute/${userInstitution}`,
           { withCredentials: true }
         );
         const inchargeRes = await axios.get(
-          `http://localhost:3001/incharges/${userInstitution}`,
+          `https://mark-register.onrender.com/incharges/${userInstitution}`,
           { withCredentials: true }
         );
 
@@ -73,7 +76,7 @@ const ManageClasses = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:3001/classes",
+        "https://mark-register.onrender.com/classes",
         {
           className,
           year: Number(year),
@@ -92,7 +95,7 @@ const ManageClasses = () => {
 
   const handleDeleteClass = async (id) => {
     try {
-      await axios.delete(`http://localhost:3001/classes/${id}`, {
+      await axios.delete(`https://mark-register.onrender.com/classes/${id}`, {
         withCredentials: true,
       });
       setClasses((prev) => prev.filter((c) => c._id !== id));
@@ -107,7 +110,7 @@ const ManageClasses = () => {
 
     try {
       const updated = await axios.put(
-        `http://localhost:3001/classes/${classId}`,
+        `https://mark-register.onrender.com/classes/${classId}`,
         {
           classTeacher: inchargeId,
         },

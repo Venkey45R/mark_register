@@ -113,7 +113,7 @@ const ReportCard = () => {
   // ---- Fetch data ----
   useEffect(() => {
     axios
-      .get(`http://localhost:3001/api/report/${rollNo}`, {
+      .get(`https://mark-register.onrender.com/api/report/${rollNo}`, {
         withCredentials: true,
       })
       .then((res) => {
@@ -131,7 +131,7 @@ const ReportCard = () => {
     const fetchInstituteLogo = async () => {
       try {
         const userRes = await axios.get(
-          "http://localhost:3001/api/current-user",
+          "https://mark-register.onrender.com/api/current-user",
           { withCredentials: true }
         );
 
@@ -140,7 +140,7 @@ const ReportCard = () => {
           instituteId = userRes.data.institution._id;
         } else if (typeof userRes.data.institution === "string") {
           const instRes = await axios.get(
-            `http://localhost:3001/api/institutes?name=${userRes.data.institution}`,
+            `https://mark-register.onrender.com/api/institutes?name=${userRes.data.institution}`,
             { withCredentials: true }
           );
           // NOTE: adjust if your API returns array
@@ -150,14 +150,14 @@ const ReportCard = () => {
         if (!instituteId) return;
 
         const inst = await axios.get(
-          `http://localhost:3001/institutes/${instituteId}`,
+          `https://mark-register.onrender.com/institutes/${instituteId}`,
           { withCredentials: true }
         );
 
         if (inst.data?.logo) {
           const logo = inst.data.logo.startsWith("http")
             ? inst.data.logo
-            : `http://localhost:3001${inst.data.logo}`;
+            : `https://mark-register.onrender.com${inst.data.logo}`;
           setInstituteLogo(logo);
         }
       } catch (err) {
@@ -171,14 +171,17 @@ const ReportCard = () => {
   useEffect(() => {
     if (institute?._id) {
       axios
-        .get(`http://localhost:3001/api/institutes/${institute._id}`, {
-          withCredentials: true,
-        })
+        .get(
+          `https://mark-register.onrender.com/api/institutes/${institute._id}`,
+          {
+            withCredentials: true,
+          }
+        )
         .then((res) => {
           if (res.data?.logo) {
             const logo = res.data.logo.startsWith("http")
               ? res.data.logo
-              : `http://localhost:3001${res.data.logo}`;
+              : `https://mark-register.onrender.com${res.data.logo}`;
             setInstituteLogo(logo);
           }
         })
