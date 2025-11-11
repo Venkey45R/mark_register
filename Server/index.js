@@ -13,7 +13,7 @@ import cookieParser from "cookie-parser";
 import { UAParser } from "ua-parser-js";
 import { v4 as uuidv4 } from "uuid";
 import Log from "./models/Logs.js";
-import Visitor from "./models/visitors.js";
+import Visitor from "./models/Visitors.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import multer from "multer";
