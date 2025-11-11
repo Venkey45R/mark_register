@@ -1,0 +1,21 @@
+{
+  "name": "mern-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Combined MERN stack app for Render deployment",
+  "scripts": {
+    "install": "npm install --prefix client && npm install --prefix server",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server",
+    "dev": "concurrently \"npm start --prefix server\" \"npm start --prefix client\"",
+    "client": "npm start --prefix client",
+    "server": "npm start --prefix server"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

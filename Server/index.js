@@ -62,7 +62,7 @@ app.use(bodyParser.text({ type: "text/csv" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "*", // allow all origins
     credentials: true,
   })
 );
