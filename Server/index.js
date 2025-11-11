@@ -59,14 +59,23 @@ dotenv.config();
 
 const app = express();
 app.use(bodyParser.text({ type: "text/csv" }));
-app.use(express.json({ limit: "10mb" }));
+const allowedOrigins = [
+  "http://localhost:3000", // for local dev
+  "https://mark-register-1.onrender.com/", // your live frontend URL
+];
+
 app.use(
   cors({
-    origin: "*", // allow all origins
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed for this origin"));
+      }
+    },
     credentials: true,
   })
 );
-
 app.use(cookieParser());
 
 mongoose
